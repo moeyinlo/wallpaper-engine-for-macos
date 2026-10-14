@@ -12,7 +12,7 @@
 
 ## 兼容性
 
-本程序不支持 Intel Mac，只支持搭载了 Apple Silicon 芯片的 Mac。由于使用了 macOS SDK 26，建议在 macOS 26 上使用，其他版本未经测试。
+本程序不支持 Intel Mac，只支持搭载了 Apple Silicon 芯片的 Mac。项目使用 macOS SDK 26 开发，建议在 macOS 26 上使用；已在 macOS 27.0.1（Apple Silicon）上成功构建并正常运行，壁纸显示正常。其他系统版本以及全部壁纸功能尚未全面测试。
 
 ## 功能特性
 
