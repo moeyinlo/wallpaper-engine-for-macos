@@ -107,7 +107,14 @@ private struct DisplayConfigurationRow: View {
                     controls
                         .padding(.top, 8)
                 } label: {
-                    header
+                    Button {
+                        expanded.toggle()
+                    } label: {
+                        header
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
             } else {
                 VStack(alignment: .leading, spacing: 12) {

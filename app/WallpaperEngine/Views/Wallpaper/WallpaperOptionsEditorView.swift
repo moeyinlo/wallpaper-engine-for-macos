@@ -104,8 +104,15 @@ struct WallpaperOptionsEditorView: View {
                     onError: onError
                 )
             } label: {
-                Label("Display Configuration", systemImage: "display.2")
-                    .font(.headline)
+                Button {
+                    displayExpanded.toggle()
+                } label: {
+                    Label("Display Configuration", systemImage: "display.2")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
 
             DisclosureGroup(isExpanded: $generalExpanded) {
@@ -117,15 +124,29 @@ struct WallpaperOptionsEditorView: View {
                 )
                 .id("\(options.wallpaperId)-general-\(displayIdFilter ?? "all")")
             } label: {
-                Label("General Configuration", systemImage: "slider.horizontal.3")
-                    .font(.headline)
+                Button {
+                    generalExpanded.toggle()
+                } label: {
+                    Label("General Configuration", systemImage: "slider.horizontal.3")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
 
             DisclosureGroup(isExpanded: $propertiesExpanded) {
                 WallpaperPropertiesSection(options: options, onError: onError)
             } label: {
-                Label("Wallpaper Properties", systemImage: "info.circle")
-                    .font(.headline)
+                Button {
+                    propertiesExpanded.toggle()
+                } label: {
+                    Label("Wallpaper Properties", systemImage: "info.circle")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

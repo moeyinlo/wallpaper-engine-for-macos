@@ -106,8 +106,18 @@ private struct WallpaperPropertyDisclosureGroup: View {
             }
             .padding(.top, 8)
         } label: {
-            propertyGroupLabel
-                .font(.headline)
+            Button {
+                expanded.toggle()
+            } label: {
+                HStack {
+                    propertyGroupLabel
+                        .font(.headline)
+                        .allowsHitTesting(false)
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
         .padding(12)
         .background {
