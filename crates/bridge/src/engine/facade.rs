@@ -39,6 +39,7 @@ pub trait EngineFacade: Send + Sync + 'static {
     fn set_audio_capture_enabled(&self, handle: SceneHandle, enabled: bool) -> EngineFuture<()>;
     fn set_scaling_mode(&self, handle: SceneHandle, mode: ScalingMode) -> EngineFuture<()>;
     fn set_scaling_factor(&self, handle: SceneHandle, factor: f64) -> EngineFuture<()>;
+    fn set_position(&self, handle: SceneHandle, x: f64, y: f64) -> EngineFuture<()>;
     fn set_fps(&self, handle: SceneHandle, fps: u32) -> EngineFuture<()>;
     fn poll_mouse_position(&self) -> EngineFuture<()>;
     fn set_mouse_position(&self, handle: SceneHandle, x: f64, y: f64) -> EngineFuture<()>;
@@ -131,6 +132,11 @@ impl EngineFacade for RealEngineFacade {
     fn set_scaling_factor(&self, handle: SceneHandle, factor: f64) -> EngineFuture<()> {
         let engine = self.engine.clone();
         async move { engine.set_scaling_factor(handle, factor).await }.boxed()
+    }
+
+    fn set_position(&self, handle: SceneHandle, x: f64, y: f64) -> EngineFuture<()> {
+        let engine = self.engine.clone();
+        async move { engine.set_position(handle, x, y).await }.boxed()
     }
 
     fn set_fps(&self, handle: SceneHandle, fps: u32) -> EngineFuture<()> {
@@ -718,6 +724,22 @@ impl EngineFacade for FakeEngineFacade {
             });
             fake.update_direct_assignment_after_refresh(handle, |template| {
                 template.scaling_factor = factor;
+            });
+            Ok(())
+        }
+        .boxed()
+    }
+
+    fn set_position(&self, handle: SceneHandle, x: f64, y: f64) -> EngineFuture<()> {
+        let fake = self.clone();
+        async move {
+            fake.update_direct_assignment(handle, |template| {
+                template.position_x = x;
+                template.position_y = y;
+            });
+            fake.update_direct_assignment_after_refresh(handle, |template| {
+                template.position_x = x;
+                template.position_y = y;
             });
             Ok(())
         }

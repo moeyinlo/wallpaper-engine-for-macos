@@ -86,6 +86,10 @@ pub struct MonitorRender {
     pub scaling_mode: String,
     #[serde(default = "default_scaling_factor")]
     pub scaling_factor: f64,
+    #[serde(default = "default_position")]
+    pub position_x: f64,
+    #[serde(default = "default_position")]
+    pub position_y: f64,
     #[serde(default = "default_fps")]
     pub fps: u32,
 }
@@ -96,6 +100,8 @@ impl Default for MonitorRender {
             selector: SerializedSelector::default(),
             scaling_mode: default_scaling_mode(),
             scaling_factor: default_scaling_factor(),
+            position_x: default_position(),
+            position_y: default_position(),
             fps: default_fps(),
         }
     }
@@ -108,6 +114,7 @@ impl MonitorRender {
             "none" => ScalingMode::None,
             "stretch" => ScalingMode::Stretch,
             "fill" => ScalingMode::Fill,
+            "free" => ScalingMode::Free,
             _ => ScalingMode::Fit,
         }
     }
@@ -127,6 +134,10 @@ fn default_scaling_mode() -> String {
 
 fn default_scaling_factor() -> f64 {
     1.0
+}
+
+pub fn default_position() -> f64 {
+    0.5
 }
 
 fn default_fps() -> u32 {

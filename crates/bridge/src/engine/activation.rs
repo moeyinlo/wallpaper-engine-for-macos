@@ -123,6 +123,8 @@ impl ActivationInputs<'_> {
             scene.display = display.clone();
             scene.scaling_mode = settings.parse_scaling_mode();
             scene.scaling_factor = settings.scaling_factor;
+            scene.position_x = settings.position_x;
+            scene.position_y = settings.position_y;
             scene.fps = scene
                 .display
                 .refresh_rate_hz
@@ -251,6 +253,8 @@ impl SceneDescBuilderExt for SceneDescBuilder {
             .map(crate::config::wallpaper::MonitorRender::parse_scaling_mode)
             .unwrap_or_default();
         let scaling_factor = render_override.map_or(1.0, |render| render.scaling_factor);
+        let position_x = render_override.map_or(0.5, |render| render.position_x);
+        let position_y = render_override.map_or(0.5, |render| render.position_y);
         let property_override_json = if !context.wallpaper.r#type.eq_ignore_ascii_case("scene")
             || context.wallpaper.property_overrides.is_empty()
         {
@@ -271,6 +275,7 @@ impl SceneDescBuilderExt for SceneDescBuilder {
             .paused(context.paused)
             .scaling_mode(scaling_mode)
             .scaling_factor(scaling_factor)
+            .position(position_x, position_y)
             .audio_response_enabled(context.wallpaper.audio.response_enabled)
             .audio_volume(audio_volume.into())
             .audio_muted(context.wallpaper.audio.muted)

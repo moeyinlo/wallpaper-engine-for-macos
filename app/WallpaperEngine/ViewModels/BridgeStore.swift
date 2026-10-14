@@ -114,6 +114,11 @@ final class BridgeStore {
         apply(bundle)
     }
 
+    func setPositionAsync(wallpaperId: String, displayId: String, x: Double, y: Double) async throws {
+        let bundle = try await bridge.setPosition(wallpaperId: wallpaperId, displayId: displayId, x: x, y: y)
+        apply(bundle)
+    }
+
     func setTargetFpsAsync(wallpaperId: String, displayId: String, fps: UInt32) async throws {
         let bundle = try await bridge.setTargetFps(wallpaperId: wallpaperId, displayId: displayId, fps: fps)
         apply(bundle)
@@ -155,6 +160,11 @@ final class BridgeStore {
 
     func setMirrorScalingFactorAsync(displayId: String, factor: Double) async throws {
         let bundle = try await bridge.setMirrorScalingFactor(displayId: displayId, factor: factor)
+        apply(bundle)
+    }
+
+    func setMirrorPositionAsync(displayId: String, x: Double, y: Double) async throws {
+        let bundle = try await bridge.setMirrorPosition(displayId: displayId, x: x, y: y)
         apply(bundle)
     }
 

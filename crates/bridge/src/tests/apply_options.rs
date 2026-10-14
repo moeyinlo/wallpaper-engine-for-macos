@@ -302,6 +302,34 @@ async fn scaling_factor_edit_updates_draft_and_apply_persists_without_reconcile(
 }
 
 #[tokio::test]
+async fn crop_position_live_updates_and_persists_without_reconcile() {
+    let root = tempfile::tempdir().unwrap();
+    let engine = FakeEngineFacade::default();
+    engine.set_snapshot(vec![display_snapshot(7, 75)]);
+    let bridge = BridgeBuilder::new(engine.clone())
+        .with_config_store(ConfigStore::open(root.path().to_path_buf()))
+        .build().unwrap();
+    bridge.inject_scene_wallpaper_config_for_test("100", "Scene").await;
+    bridge.set_display_config_enabled("100".to_string(), "7".to_string(), true).await.unwrap();
+    let done = engine.wait_for_next_reconcile();
+    bridge.apply_wallpaper_options("100".to_string()).await.unwrap();
+    assert!(done.wait(Duration::from_secs(2)));
+    engine.set_snapshot(vec![active_display_snapshot(7, 75, 42)]);
+
+    bridge.set_scaling_mode("100".to_string(), "7".to_string(), BridgeScalingMode::Free).await.unwrap();
+    bridge.set_position("100".to_string(), "7".to_string(), 0.2, 0.8).await.unwrap();
+    let options = bridge.wallpaper_options_snapshot("100".to_string()).await.unwrap();
+    assert_eq!(options.display_configurations[0].scaling_mode, BridgeScalingMode::Free);
+    assert_eq!((options.display_configurations[0].position_x, options.display_configurations[0].position_y), (0.2, 0.8));
+    let config = ConfigStore::open(root.path().to_path_buf()).load_wallpaper("100").unwrap();
+    assert_eq!((config.monitors[0].position_x, config.monitors[0].position_y), (0.2, 0.8));
+    assert_eq!(engine.calls().len(), 1);
+    for invalid in [-0.1, 1.1, f64::NAN] {
+        assert!(bridge.set_position("100".to_string(), "7".to_string(), invalid, 0.5).await.is_err());
+    }
+}
+
+#[tokio::test]
 async fn scaling_factor_edit_rejects_non_positive_and_non_finite_values() {
     let engine = FakeEngineFacade::default();
     engine.set_snapshot(vec![display_snapshot(7, 75)]);

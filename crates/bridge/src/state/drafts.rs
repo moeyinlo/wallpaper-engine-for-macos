@@ -262,6 +262,43 @@ impl WallpaperOptionsDraft {
         Ok(())
     }
 
+    pub fn set_position(
+        &mut self,
+        selector: SerializedSelector,
+        x: f64,
+        y: f64,
+    ) -> Result<WallpaperConfig, BridgeError> {
+        if !x.is_finite()
+            || !y.is_finite()
+            || !(0.0..=1.0).contains(&x)
+            || !(0.0..=1.0).contains(&y)
+        {
+            return Err(BridgeError::invalid_input(
+                "position must be between 0 and 1",
+            ));
+        }
+        let render = self.ensure_monitor_render(selector.clone());
+        render.position_x = x;
+        render.position_y = y;
+        let committed = self
+            .committed
+            .monitors
+            .iter_mut()
+            .find(|render| render.selector == selector);
+        if let Some(render) = committed {
+            render.position_x = x;
+            render.position_y = y;
+        } else {
+            self.committed.monitors.push(MonitorRender {
+                selector,
+                position_x: x,
+                position_y: y,
+                ..MonitorRender::default()
+            });
+        }
+        Ok(self.committed.clone())
+    }
+
     pub fn set_target_fps(&mut self, selector: SerializedSelector, fps: u32, max_fps: u32) {
         self.ensure_monitor_render(selector).fps = fps.min(max_fps.max(1));
     }

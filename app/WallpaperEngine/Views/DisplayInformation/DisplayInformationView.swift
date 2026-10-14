@@ -246,6 +246,8 @@ private struct MirrorDisplayControls: View {
 
     @State private var scalingMode: BridgeScalingMode
     @State private var scalingFactorDraft: String
+    @State private var positionX: Double
+    @State private var positionY: Double
     @State private var targetFps: Double
     @State private var muted: Bool
     @State private var volume: Double
@@ -257,6 +259,8 @@ private struct MirrorDisplayControls: View {
         self.onError = onError
         _scalingMode = State(initialValue: display.scalingMode)
         _scalingFactorDraft = State(initialValue: Self.formattedScalingFactor(display.scalingFactor))
+        _positionX = State(initialValue: display.positionX)
+        _positionY = State(initialValue: display.positionY)
         _targetFps = State(initialValue: Double(Self.clampedTargetFps(display)))
         _muted = State(initialValue: display.muted)
         _volume = State(initialValue: Double(display.volume))
@@ -264,36 +268,63 @@ private struct MirrorDisplayControls: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Picker("Scaling Mode", selection: Binding {
+            Picker("Wallpaper Layout", selection: Binding {
                 scalingMode
             } set: { mode in
                 setScalingMode(mode)
             }) {
-                Text("None").tag(BridgeScalingMode.none)
+                Text("Cover").tag(BridgeScalingMode.fill)
+                Text("Fill").tag(BridgeScalingMode.match)
+                Text("Center").tag(BridgeScalingMode.none)
                 Text("Stretch").tag(BridgeScalingMode.stretch)
-                Text("Match").tag(BridgeScalingMode.match)
-                Text("Fill").tag(BridgeScalingMode.fill)
+                Text("Free").tag(BridgeScalingMode.free)
             }
             .pickerStyle(.menu)
             .disabled(actionInProgress)
 
-            HStack {
-                Text("Scaling Factor")
-                Spacer()
-                TextField("", text: $scalingFactorDraft)
-                    .textFieldStyle(.roundedBorder)
-                    .multilineTextAlignment(.trailing)
-                    .monospacedDigit()
-                    .frame(width: 72)
-                    .focused($scalingFactorFocused)
-                    .onSubmit(commitScalingFactor)
-                    .onChange(of: scalingFactorFocused) { _, isFocused in
-                        if !isFocused {
-                            commitScalingFactor()
+            if scalingMode != .stretch {
+                HStack {
+                    Text("Zoom")
+                    Spacer()
+                    TextField("", text: $scalingFactorDraft)
+                        .textFieldStyle(.roundedBorder)
+                        .multilineTextAlignment(.trailing)
+                        .monospacedDigit()
+                        .frame(width: 72)
+                        .focused($scalingFactorFocused)
+                        .onSubmit(commitScalingFactor)
+                        .onChange(of: scalingFactorFocused) { _, isFocused in
+                            if !isFocused {
+                                commitScalingFactor()
+                            }
                         }
-                    }
+                }
+                .disabled(actionInProgress)
             }
-            .disabled(actionInProgress)
+
+            if scalingMode == .fill || scalingMode == .free {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Horizontal Position")
+                        Spacer()
+                        Text(positionX.formatted(.percent.precision(.fractionLength(0))))
+                            .monospacedDigit()
+                    }
+                    Slider(value: $positionX, in: 0...1, onEditingChanged: { editing in
+                        if !editing { commitPosition() }
+                    })
+                    HStack {
+                        Text("Vertical Position")
+                        Spacer()
+                        Text(positionY.formatted(.percent.precision(.fractionLength(0))))
+                            .monospacedDigit()
+                    }
+                    Slider(value: $positionY, in: 0...1, onEditingChanged: { editing in
+                        if !editing { commitPosition() }
+                    })
+                }
+                .disabled(actionInProgress)
+            }
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
@@ -362,6 +393,8 @@ private struct MirrorDisplayControls: View {
     private func reset(from display: BridgeDisplaySettingsRow) {
         scalingMode = display.scalingMode
         scalingFactorDraft = Self.formattedScalingFactor(display.scalingFactor)
+        positionX = display.positionX
+        positionY = display.positionY
         targetFps = Double(Self.clampedTargetFps(display))
         muted = display.muted
         volume = Double(display.volume)
@@ -394,6 +427,14 @@ private struct MirrorDisplayControls: View {
         performAsyncBridgeAction {
             try await store.setMirrorScalingModeAsync(displayId: display.displayId, mode: mode)
             scalingMode = mode
+        }
+    }
+
+    private func commitPosition() {
+        let x = positionX
+        let y = positionY
+        performAsyncBridgeAction {
+            try await store.setMirrorPositionAsync(displayId: display.displayId, x: x, y: y)
         }
     }
 

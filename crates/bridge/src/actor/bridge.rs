@@ -29,9 +29,9 @@ use crate::{
             ReplaceLibraryForTest, ReplaceWallpaperConfigForTest, RestorePropertyDefault,
             SelectWallpaper, SetAudioResponseEnabled, SetDisplayConfigEnabled, SetDisplayEnabled,
             SetDisplayMode, SetFilter, SetGlobalPlayback, SetLaunchAtLogin, SetMirrorMuted,
-            SetMirrorScalingFactor, SetMirrorScalingMode, SetMirrorTarget, SetMirrorTargetFps,
-            SetMirrorVolume, SetMuted, SetPauseOnBatteryPower, SetPowerSource, SetScalingFactor,
-            SetScalingMode, SetTargetFps, SetVolume, Shutdown,
+            SetMirrorPosition, SetMirrorScalingFactor, SetMirrorScalingMode, SetMirrorTarget,
+            SetMirrorTargetFps, SetMirrorVolume, SetMuted, SetPauseOnBatteryPower, SetPosition,
+            SetPowerSource, SetScalingFactor, SetScalingMode, SetTargetFps, SetVolume, Shutdown,
         },
         state::BridgeActorState,
     },
@@ -1423,6 +1423,8 @@ impl<E: EngineFacade + Clone> Message<InjectDisplayForTest> for BridgeActor<E> {
                 selected_mirror_target: None,
                 scaling_mode: BridgeScalingMode::Match,
                 scaling_factor: 1.0,
+                position_x: 0.5,
+                position_y: 0.5,
                 target_fps: 60,
                 max_fps: 60,
                 muted: false,
@@ -1809,6 +1811,45 @@ impl<E: EngineFacade + Clone> Message<SetMirrorScalingFactor> for BridgeActor<E>
                     .await
                     .map_err(|error| BridgeError::engine(error.to_string()))
             );
+        }
+        self.bump_generation();
+        ctx.reply(Ok(self.display_bundle()))
+    }
+}
+
+impl<E: EngineFacade + Clone> Message<SetMirrorPosition> for BridgeActor<E> {
+    type Reply = DelegatedReply<messages::SetMirrorPositionReply>;
+
+    async fn handle(
+        &mut self,
+        msg: SetMirrorPosition,
+        ctx: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        if !valid_position(msg.x, msg.y) {
+            return ctx.reply(Err(BridgeError::invalid_input(
+                "position must be between 0 and 1",
+            )));
+        }
+        let displays = self.engine.display_snapshot();
+        let selector = match self.selector_for(&msg.display_id, &displays) {
+            Ok(selector) => selector,
+            Err(error) => return ctx.reply(Err(error)),
+        };
+        let handle = self.mirror_display_handle(&selector, &displays);
+        let mut app_config = self.normalized_config(&displays);
+        if let Err(error) = Self::require_mirror_monitor(&app_config, &selector) {
+            return ctx.reply(Err(error));
+        }
+        let settings = Self::monitor_settings_mut(&mut app_config, selector);
+        settings.position_x = msg.x;
+        settings.position_y = msg.y;
+        if let Err(error) = self.commit_app_config(app_config) {
+            return ctx.reply(Err(error));
+        }
+        if let Some(handle) = handle {
+            if let Err(error) = self.engine.set_position(handle, msg.x, msg.y).await {
+                return ctx.reply(Err(BridgeError::engine(error.to_string())));
+            }
         }
         self.bump_generation();
         ctx.reply(Ok(self.display_bundle()))
@@ -2289,6 +2330,36 @@ impl<E: EngineFacade + Clone> Message<SetScalingFactor> for BridgeActor<E> {
         self.bump_generation();
         self.wallpaper_bundle(msg.wallpaper_id)
     }
+}
+
+impl<E: EngineFacade + Clone> Message<SetPosition> for BridgeActor<E> {
+    type Reply = messages::WallpaperMutationReply;
+
+    async fn handle(
+        &mut self,
+        msg: SetPosition,
+        _ctx: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        let displays = self.engine.display_snapshot();
+        let selector = self.selector_for(&msg.display_id, &displays)?;
+        let config = self
+            .state
+            .wallpaper_draft_mut(&msg.wallpaper_id)?
+            .set_position(selector.clone(), msg.x, msg.y)?;
+        self.save_wallpaper(msg.wallpaper_id.clone(), config)?;
+        if let Some(handle) = self.display_handle(&msg.wallpaper_id, &selector) {
+            self.engine
+                .set_position(handle, msg.x, msg.y)
+                .await
+                .map_err(|error| BridgeError::engine(error.to_string()))?;
+        }
+        self.bump_generation();
+        self.wallpaper_bundle(msg.wallpaper_id)
+    }
+}
+
+fn valid_position(x: f64, y: f64) -> bool {
+    x.is_finite() && y.is_finite() && (0.0..=1.0).contains(&x) && (0.0..=1.0).contains(&y)
 }
 
 impl<E: EngineFacade + Clone> Message<SetTargetFps> for BridgeActor<E> {

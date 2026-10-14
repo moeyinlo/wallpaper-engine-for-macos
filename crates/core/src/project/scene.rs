@@ -210,6 +210,8 @@ pub enum ScalingMode {
     Fit,
     /// Preserve aspect ratio and fill the output rectangle, cropping overflow.
     Fill,
+    /// Start from fit scaling and allow user-controlled zoom and positioning.
+    Free,
 }
 
 impl Display for ScalingMode {
@@ -219,6 +221,7 @@ impl Display for ScalingMode {
             ScalingMode::Stretch => "stretch",
             ScalingMode::Fit => "fit",
             ScalingMode::Fill => "fill",
+            ScalingMode::Free => "free",
         };
         write!(f, "{name}")
     }
@@ -240,6 +243,10 @@ pub struct SceneDesc {
     pub scaling_mode: ScalingMode,
     /// Initial positive wallpaper scaling factor.
     pub scaling_factor: f64,
+    /// Horizontal and vertical position within available crop/letterbox space
+    /// (0..=1).
+    pub position_x: f64,
+    pub position_y: f64,
     /// Whether the renderer should start in a paused state.
     pub paused: bool,
     /// Whether scene audio-response properties should be enabled.
@@ -272,6 +279,8 @@ impl SceneDesc {
             fps: 60,
             scaling_mode: ScalingMode::default(),
             scaling_factor: 1.0,
+            position_x: 0.5,
+            position_y: 0.5,
             paused: false,
             audio_response_enabled: false,
             audio_volume: AudioVolume::try_from(1.0).unwrap(),
@@ -306,6 +315,8 @@ impl SceneDesc {
             fps,
             scaling_mode: ScalingMode::default(),
             scaling_factor: 1.0,
+            position_x: 0.5,
+            position_y: 0.5,
             paused,
             audio_response_enabled: false,
             audio_volume: AudioVolume::try_from(1.0).unwrap(),
@@ -348,6 +359,11 @@ impl SceneDesc {
                 "scaling factor must be finite and greater than zero".to_string(),
             ));
         }
+        if !valid_position(self.position_x) || !valid_position(self.position_y) {
+            return Err(EngineError::InvalidInput(
+                "position must be between 0 and 1".to_string(),
+            ));
+        }
         Ok(())
     }
 
@@ -369,6 +385,13 @@ impl SceneDesc {
     #[must_use]
     pub fn with_scaling_factor(mut self, scaling_factor: f64) -> Self {
         self.scaling_factor = scaling_factor;
+        self
+    }
+
+    #[must_use]
+    pub fn with_position(mut self, x: f64, y: f64) -> Self {
+        self.position_x = x;
+        self.position_y = y;
         self
     }
 
@@ -452,6 +475,8 @@ impl SceneDesc {
             && self.fps == other.fps
             && self.scaling_mode == other.scaling_mode
             && (self.scaling_factor - other.scaling_factor).abs() <= f64::EPSILON
+            && self.position_x == other.position_x
+            && self.position_y == other.position_y
             && self.audio_response_enabled == other.audio_response_enabled
             && self.audio_volume == other.audio_volume
             && self.audio_muted == other.audio_muted
@@ -481,6 +506,8 @@ pub struct SceneTemplate {
     pub scaling_mode: ScalingMode,
     /// Initial positive wallpaper scaling factor.
     pub scaling_factor: f64,
+    pub position_x: f64,
+    pub position_y: f64,
     /// Whether the renderer should start in a paused state.
     pub paused: bool,
     /// Whether scene audio-response properties should be enabled.
@@ -512,6 +539,8 @@ impl SceneTemplate {
             fps: 60,
             scaling_mode: ScalingMode::default(),
             scaling_factor: 1.0,
+            position_x: 0.5,
+            position_y: 0.5,
             paused: false,
             audio_response_enabled: false,
             audio_volume: AudioVolume::try_from(1.0).unwrap(),
@@ -531,6 +560,8 @@ impl SceneTemplate {
             fps: scene.fps,
             scaling_mode: scene.scaling_mode,
             scaling_factor: scene.scaling_factor,
+            position_x: scene.position_x,
+            position_y: scene.position_y,
             paused: scene.paused,
             audio_response_enabled: scene.audio_response_enabled,
             audio_volume: scene.audio_volume,
@@ -551,6 +582,8 @@ impl SceneTemplate {
             fps: self.fps,
             scaling_mode: self.scaling_mode,
             scaling_factor: self.scaling_factor,
+            position_x: self.position_x,
+            position_y: self.position_y,
             paused: self.paused,
             audio_response_enabled: self.audio_response_enabled,
             audio_volume: self.audio_volume,
@@ -582,6 +615,11 @@ impl SceneTemplate {
                 "scaling factor must be finite and greater than zero".to_string(),
             ));
         }
+        if !valid_position(self.position_x) || !valid_position(self.position_y) {
+            return Err(EngineError::InvalidInput(
+                "position must be between 0 and 1".to_string(),
+            ));
+        }
         Ok(())
     }
 }
@@ -595,6 +633,8 @@ pub struct SceneTemplateBuilder {
     fps: u32,
     scaling_mode: ScalingMode,
     scaling_factor: f64,
+    position_x: f64,
+    position_y: f64,
     paused: bool,
     audio_response_enabled: bool,
     audio_volume: AudioVolume,
@@ -630,6 +670,13 @@ impl SceneTemplateBuilder {
     #[must_use]
     pub fn scaling_factor(mut self, scaling_factor: f64) -> Self {
         self.scaling_factor = scaling_factor;
+        self
+    }
+
+    #[must_use]
+    pub fn position(mut self, x: f64, y: f64) -> Self {
+        self.position_x = x;
+        self.position_y = y;
         self
     }
 
@@ -694,6 +741,8 @@ impl SceneTemplateBuilder {
             fps: self.fps,
             scaling_mode: self.scaling_mode,
             scaling_factor: self.scaling_factor,
+            position_x: self.position_x,
+            position_y: self.position_y,
             paused: self.paused,
             audio_response_enabled: self.audio_response_enabled,
             audio_volume: self.audio_volume,
@@ -772,6 +821,8 @@ pub struct SceneDescBuilder {
     fps: u32,
     scaling_mode: ScalingMode,
     scaling_factor: f64,
+    position_x: f64,
+    position_y: f64,
     paused: bool,
     audio_response_enabled: bool,
     audio_volume: AudioVolume,
@@ -807,6 +858,13 @@ impl SceneDescBuilder {
     #[must_use]
     pub fn scaling_factor(mut self, scaling_factor: f64) -> Self {
         self.scaling_factor = scaling_factor;
+        self
+    }
+
+    #[must_use]
+    pub fn position(mut self, x: f64, y: f64) -> Self {
+        self.position_x = x;
+        self.position_y = y;
         self
     }
 
@@ -885,6 +943,11 @@ impl SceneDescBuilder {
                 "scaling factor must be finite and greater than zero".to_string(),
             ));
         }
+        if !valid_position(self.position_x) || !valid_position(self.position_y) {
+            return Err(EngineError::InvalidInput(
+                "position must be between 0 and 1".to_string(),
+            ));
+        }
 
         Ok(SceneDesc {
             display: self.display,
@@ -893,6 +956,8 @@ impl SceneDescBuilder {
             fps: self.fps,
             scaling_mode: self.scaling_mode,
             scaling_factor: self.scaling_factor,
+            position_x: self.position_x,
+            position_y: self.position_y,
             paused: self.paused,
             audio_response_enabled: self.audio_response_enabled,
             audio_volume: self.audio_volume,
@@ -906,6 +971,10 @@ impl SceneDescBuilder {
 
 fn valid_scaling_factor(factor: f64) -> bool {
     factor.is_finite() && factor > 0.0
+}
+
+fn valid_position(value: f64) -> bool {
+    value.is_finite() && (0.0..=1.0).contains(&value)
 }
 
 /// Result for one scene reconciliation request.
@@ -935,6 +1004,20 @@ impl SceneResult {
 mod tests {
     use super::{ScalingMode, SceneDesc, SceneHandle, SceneResult, SceneTemplate};
     use crate::{DisplayDesc, EngineError};
+
+    #[test]
+    fn position_is_preserved_through_template_and_rejects_invalid_values() {
+        let display = DisplayDesc::new(42, 0, 0, 1920, 1080, 2.0);
+        let scene = SceneDesc::builder(display.clone(), "/scene/project.json")
+            .position(0.25, 0.75).build().unwrap();
+        let template = SceneTemplate::from_scene_desc(&scene);
+        let restored = template.for_display(display.clone());
+        assert_eq!((restored.position_x, restored.position_y), (0.25, 0.75));
+        for value in [-0.1, 1.1, f64::NAN] {
+            assert!(SceneDesc::builder(display.clone(), "/scene/project.json")
+                .position(value, 0.5).build().is_err());
+        }
+    }
 
     #[test]
     fn scene_descriptor_keeps_display_assignment() {

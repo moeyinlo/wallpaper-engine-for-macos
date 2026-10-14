@@ -24,6 +24,8 @@ pub struct SceneRuntime {
     scaling_mode: ScalingMode,
     /// Runtime override applied after descriptor defaults.
     scaling_factor: f64,
+    position_x: f64,
+    position_y: f64,
     /// Renderer-surface override. Changing this rebuilds the renderer object.
     render_resolution: Option<(u32, u32)>,
     /// Runtime audio-response state, preserved across scene reconciliation.
@@ -47,6 +49,8 @@ pub struct SceneRuntimeState {
     /// Mutable state that should survive replacing the scene descriptor.
     pub scaling_mode: ScalingMode,
     pub scaling_factor: f64,
+    pub position_x: f64,
+    pub position_y: f64,
     pub render_resolution: Option<(u32, u32)>,
     pub audio_response_enabled: bool,
     pub paused: bool,
@@ -126,6 +130,8 @@ impl SceneRuntime {
             window.metal_layer_ptr(),
             state.scaling_mode,
             state.scaling_factor,
+            state.position_x,
+            state.position_y,
             state.render_resolution,
             Some(Arc::new({
                 let callback = first_frame_callback.clone();
@@ -140,6 +146,8 @@ impl SceneRuntime {
             renderer,
             scaling_mode: state.scaling_mode,
             scaling_factor: state.scaling_factor,
+            position_x: state.position_x,
+            position_y: state.position_y,
             render_resolution: state.render_resolution,
             audio_response_enabled: state.audio_response_enabled,
             paused: state.paused,
@@ -164,6 +172,15 @@ impl SceneRuntime {
         self.renderer.set_scaling_factor(factor)?;
         self.scaling_factor = factor;
         self.desc.scaling_factor = factor;
+        Ok(())
+    }
+
+    pub fn set_position(&mut self, x: f64, y: f64) -> Result<(), EngineError> {
+        self.renderer.set_position(x, y)?;
+        self.position_x = x;
+        self.position_y = y;
+        self.desc.position_x = x;
+        self.desc.position_y = y;
         Ok(())
     }
 
@@ -245,14 +262,17 @@ impl SceneRuntime {
             metal_layer,
             state.scaling_mode,
             state.scaling_factor,
+            state.position_x,
+            state.position_y,
             render_resolution,
             Some(first_frame_callback),
         ) {
             Ok(renderer) => renderer,
             Err(error) => {
-                // Best-effort geometry rollback. The layer swap is not reversible
-                // without creating yet another new layer, so we restore the
-                // NSWindow/NSView frames to the old display's geometry instead.
+                // Best-effort geometry rollback. The layer swap is not
+                // reversible without creating yet another new
+                // layer, so we restore the NSWindow/NSView
+                // frames to the old display's geometry instead.
                 let _ = window.update_display(old_display);
                 return Err(error);
             }
@@ -266,6 +286,8 @@ impl SceneRuntime {
         self.desc = stored_desc;
         self.scaling_mode = state.scaling_mode;
         self.scaling_factor = state.scaling_factor;
+        self.position_x = state.position_x;
+        self.position_y = state.position_y;
         self.render_resolution = render_resolution;
         self.audio_response_enabled = state.audio_response_enabled;
         self.audio_volume = state.audio_volume;
@@ -333,14 +355,14 @@ impl SceneRuntime {
         })?;
         let metal_layer = window.update_layer(display.clone())?;
 
-        // 3. Compute render resolution from the new display, or keep explicit override
-        //    if one was set.
+        // 3. Compute render resolution from the new display, or keep explicit
+        //    override if one was set.
         let (render_width, render_height) = self
             .render_resolution
             .unwrap_or((display.width, display.height));
 
-        // 4. Rebuild the Vulkan surface + swapchain + presentation passes from the new
-        //    layer, and resume rendering.
+        // 4. Rebuild the Vulkan surface + swapchain + presentation passes from
+        //    the new layer, and resume rendering.
         self.renderer.finish_surface_reconfigure(
             metal_layer,
             display.width,
@@ -411,6 +433,8 @@ impl SceneRuntime {
         SceneRuntimeState {
             scaling_mode: self.scaling_mode,
             scaling_factor: self.scaling_factor,
+            position_x: self.position_x,
+            position_y: self.position_y,
             render_resolution: self.render_resolution,
             audio_response_enabled: self.audio_response_enabled,
             paused: self.paused,
@@ -490,6 +514,11 @@ impl SceneRuntimeState {
         if self.audio_muted != descriptor_state.audio_muted {
             renderer.set_audio_muted(self.audio_muted)?;
         }
+        if self.position_x != descriptor_state.position_x
+            || self.position_y != descriptor_state.position_y
+        {
+            renderer.set_position(self.position_x, self.position_y)?;
+        }
         match self.property_override_update(descriptor_state) {
             PropertyOverrideUpdate::Unchanged => {}
             PropertyOverrideUpdate::Apply(json) => renderer.set_property_override(json)?,
@@ -535,6 +564,8 @@ impl SceneRuntimeState {
         if inheritance == DescriptorInheritance::UseDescriptorDefaults {
             self.scaling_mode = next_descriptor_state.scaling_mode;
             self.scaling_factor = next_descriptor_state.scaling_factor;
+            self.position_x = next_descriptor_state.position_x;
+            self.position_y = next_descriptor_state.position_y;
             self.audio_response_enabled = next_descriptor_state.audio_response_enabled;
             self.audio_volume = next_descriptor_state.audio_volume;
             self.audio_muted = next_descriptor_state.audio_muted;
@@ -551,6 +582,8 @@ impl TryFrom<&SceneDesc> for SceneRuntimeState {
         Ok(Self {
             scaling_mode: desc.scaling_mode,
             scaling_factor: desc.scaling_factor,
+            position_x: desc.position_x,
+            position_y: desc.position_y,
             render_resolution: None,
             audio_response_enabled: desc.audio_response_enabled,
             paused: desc.paused,
@@ -774,6 +807,8 @@ mod tests {
         SceneRuntimeState {
             scaling_mode: ScalingMode::Fit,
             scaling_factor: 1.0,
+            position_x: 0.5,
+            position_y: 0.5,
             render_resolution: None,
             audio_response_enabled: true,
             paused: false,

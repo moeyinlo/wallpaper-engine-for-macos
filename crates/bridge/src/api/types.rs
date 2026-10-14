@@ -23,6 +23,7 @@ pub enum BridgeScalingMode {
     Stretch,
     Match,
     Fill,
+    Free,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, uniffi::Enum)]
@@ -103,6 +104,8 @@ pub struct BridgeDisplayConfigRow {
     pub enabled: bool,
     pub scaling_mode: BridgeScalingMode,
     pub scaling_factor: f64,
+    pub position_x: f64,
+    pub position_y: f64,
     pub target_fps: u32,
     pub max_fps: u32,
     pub muted: bool,
@@ -175,6 +178,8 @@ pub struct BridgeDisplaySettingsRow {
     pub selected_mirror_target: Option<String>,
     pub scaling_mode: BridgeScalingMode,
     pub scaling_factor: f64,
+    pub position_x: f64,
+    pub position_y: f64,
     pub target_fps: u32,
     pub max_fps: u32,
     pub muted: bool,

@@ -63,6 +63,8 @@ impl OweBackend {
         metal_layer: *mut c_void,
         scaling_mode: ScalingMode,
         scaling_factor: f64,
+        position_x: f64,
+        position_y: f64,
         render_resolution: Option<(u32, u32)>,
         first_frame_callback: Option<FirstFrameCallback>,
     ) -> Result<OweScene, EngineError> {
@@ -83,6 +85,7 @@ impl OweBackend {
         scene.set_first_frame_callback(first_frame_callback)?;
         scene.set_scaling_mode(scaling_mode)?;
         scene.set_scaling_factor(scaling_factor)?;
+        scene.set_position(position_x, position_y)?;
         Ok(scene)
     }
 
@@ -134,7 +137,8 @@ impl OweScene {
         call: impl FnOnce() -> *const c_char,
     ) -> Result<*const c_char, EngineError> {
         // Property names are owned by OWE constants. Keeping lookups behind
-        // functions avoids duplicating string literals that must match upstream.
+        // functions avoids duplicating string literals that must match
+        // upstream.
         let name = unsafe { UnwindSafeFFI::new(operation).call(call) }?;
         if name.is_null() {
             Err(EngineError::Render(
@@ -166,6 +170,18 @@ impl OweScene {
     pub fn scaling_factor() -> Result<*const c_char, EngineError> {
         Self::property_name("owe_property_scaling_factor", || unsafe {
             sys::owe_property_scaling_factor()
+        })
+    }
+
+    fn position_x() -> Result<*const c_char, EngineError> {
+        Self::property_name("owe_property_position_x", || unsafe {
+            sys::owe_property_position_x()
+        })
+    }
+
+    fn position_y() -> Result<*const c_char, EngineError> {
+        Self::property_name("owe_property_position_y", || unsafe {
+            sys::owe_property_position_y()
         })
     }
 
@@ -363,6 +379,7 @@ impl OweScene {
             ScalingMode::Stretch => 1,
             ScalingMode::Fit => 2,
             ScalingMode::Fill => 3,
+            ScalingMode::Free => 4,
         };
         self.set_property_int32(Self::scaling_mode()?, value)
     }
@@ -376,6 +393,12 @@ impl OweScene {
     #[allow(clippy::cast_possible_truncation)]
     pub fn set_scaling_factor(&mut self, factor: f64) -> Result<(), EngineError> {
         self.set_property_float(Self::scaling_factor()?, factor as f32)
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn set_position(&mut self, x: f64, y: f64) -> Result<(), EngineError> {
+        self.set_property_float(Self::position_x()?, x as f32)?;
+        self.set_property_float(Self::position_y()?, y as f32)
     }
 
     /// Sets the target renderer frame rate.
@@ -767,7 +790,8 @@ unsafe extern "C-unwind" fn owe_first_frame_callback(user_data: *mut c_void) {
             return;
         }
 
-        // SAFETY: `user_data` is produced by `OweScene::set_first_frame_callback`
+        // SAFETY: `user_data` is produced by
+        // `OweScene::set_first_frame_callback`
         // from `Box<FirstFrameCallback>`. The C++ wrapper owns that box until
         // it invokes `owe_first_frame_callback_drop`.
         let callback = unsafe { &*user_data.cast::<FirstFrameCallback>() };
@@ -782,8 +806,9 @@ unsafe extern "C-unwind" fn owe_first_frame_callback_drop(user_data: *mut c_void
             return;
         }
 
-        // SAFETY: C++ calls this exactly once for each `Box<FirstFrameCallback>`
-        // transferred through `owe_scene_wallpaper_set_first_frame_callback`.
+        // SAFETY: C++ calls this exactly once for each
+        // `Box<FirstFrameCallback>` transferred through
+        // `owe_scene_wallpaper_set_first_frame_callback`.
         drop(unsafe { Box::<FirstFrameCallback>::from_raw(user_data.cast()) });
     }));
 }

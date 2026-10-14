@@ -449,6 +449,25 @@ impl WallpaperEngine {
             .await
     }
 
+    /// Positions wallpaper inside the crop or letterbox range (0..=1 per axis).
+    pub async fn set_position(
+        &self,
+        handle: SceneHandle,
+        x: f64,
+        y: f64,
+    ) -> Result<(), EngineError> {
+        if !x.is_finite()
+            || !y.is_finite()
+            || !(0.0..=1.0).contains(&x)
+            || !(0.0..=1.0).contains(&y)
+        {
+            return Err(EngineError::InvalidInput(
+                "position must be between 0 and 1".to_string(),
+            ));
+        }
+        self.ask_actor(messages::SetPosition { handle, x, y }).await
+    }
+
     /// Live-updates the target FPS for one scene.
     ///
     /// # Errors

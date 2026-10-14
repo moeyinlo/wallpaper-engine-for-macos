@@ -60,6 +60,8 @@ private struct DisplayConfigurationRow: View {
     @State private var enabled: Bool
     @State private var scalingMode: BridgeScalingMode
     @State private var scalingFactorDraft: String
+    @State private var positionX: Double
+    @State private var positionY: Double
     @State private var expanded: Bool
     @State private var targetFps: Double
     @State private var muted: Bool
@@ -90,6 +92,8 @@ private struct DisplayConfigurationRow: View {
         _enabled = State(initialValue: row.enabled)
         _scalingMode = State(initialValue: row.scalingMode)
         _scalingFactorDraft = State(initialValue: Self.formattedScalingFactor(row.scalingFactor))
+        _positionX = State(initialValue: row.positionX)
+        _positionY = State(initialValue: row.positionY)
         _expanded = State(initialValue: !collapsible)
         _targetFps = State(initialValue: Double(Self.clampedTargetFps(row)))
         _muted = State(initialValue: row.muted)
@@ -160,7 +164,7 @@ private struct DisplayConfigurationRow: View {
             .toggleStyle(.switch)
             .disabled(bridgeActionInProgress)
 
-            Picker("Scaling Mode", selection: Binding {
+            Picker("Wallpaper Layout", selection: Binding {
                 scalingMode
             } set: { mode in
                 performAsyncBridgeAction {
@@ -172,29 +176,56 @@ private struct DisplayConfigurationRow: View {
                     scalingMode = mode
                 }
             }) {
-                Text("None").tag(BridgeScalingMode.none)
+                Text("Cover").tag(BridgeScalingMode.fill)
+                Text("Fill").tag(BridgeScalingMode.match)
+                Text("Center").tag(BridgeScalingMode.none)
                 Text("Stretch").tag(BridgeScalingMode.stretch)
-                Text("Match").tag(BridgeScalingMode.match)
-                Text("Fill").tag(BridgeScalingMode.fill)
+                Text("Free").tag(BridgeScalingMode.free)
             }
             .pickerStyle(.menu)
             .disabled(!enabled || bridgeActionInProgress)
 
-            HStack {
-                Text("Scaling Factor")
-                Spacer()
-                TextField("", text: $scalingFactorDraft)
-                    .textFieldStyle(.roundedBorder)
-                    .multilineTextAlignment(.trailing)
-                    .monospacedDigit()
-                    .frame(width: 72)
-                    .focused($scalingFactorFocused)
-                    .onChange(of: scalingFactorDraft) { _, value in
-                        updatePendingScalingFactor(value)
-                    }
-                    .onSubmit(commitScalingFactor)
+            if scalingMode != .stretch {
+                HStack {
+                    Text("Zoom")
+                    Spacer()
+                    TextField("", text: $scalingFactorDraft)
+                        .textFieldStyle(.roundedBorder)
+                        .multilineTextAlignment(.trailing)
+                        .monospacedDigit()
+                        .frame(width: 72)
+                        .focused($scalingFactorFocused)
+                        .onChange(of: scalingFactorDraft) { _, value in
+                            updatePendingScalingFactor(value)
+                        }
+                        .onSubmit(commitScalingFactor)
+                }
+                .disabled(!enabled || bridgeActionInProgress)
             }
-            .disabled(!enabled || bridgeActionInProgress)
+
+            if scalingMode == .fill || scalingMode == .free {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Horizontal Position")
+                        Spacer()
+                        Text(positionX.formatted(.percent.precision(.fractionLength(0))))
+                            .monospacedDigit()
+                    }
+                    Slider(value: $positionX, in: 0...1, onEditingChanged: { editing in
+                        if !editing { commitPosition() }
+                    })
+                    HStack {
+                        Text("Vertical Position")
+                        Spacer()
+                        Text(positionY.formatted(.percent.precision(.fractionLength(0))))
+                            .monospacedDigit()
+                    }
+                    Slider(value: $positionY, in: 0...1, onEditingChanged: { editing in
+                        if !editing { commitPosition() }
+                    })
+                }
+                .disabled(!enabled || bridgeActionInProgress)
+            }
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
@@ -269,6 +300,8 @@ private struct DisplayConfigurationRow: View {
         enabled = row.enabled
         scalingMode = row.scalingMode
         scalingFactorDraft = Self.formattedScalingFactor(row.scalingFactor)
+        positionX = row.positionX
+        positionY = row.positionY
         pendingScalingFactors.removeValue(forKey: row.displayId)
         invalidScalingFactorDisplayIds.remove(row.displayId)
         targetFps = Double(Self.clampedTargetFps(row))
@@ -343,6 +376,14 @@ private struct DisplayConfigurationRow: View {
                 fps: fps
             )
             targetFps = Double(fps)
+        }
+    }
+
+    private func commitPosition() {
+        let x = positionX
+        let y = positionY
+        performAsyncBridgeAction {
+            try await store.setPositionAsync(wallpaperId: wallpaperId, displayId: row.displayId, x: x, y: y)
         }
     }
 

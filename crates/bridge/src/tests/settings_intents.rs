@@ -2346,6 +2346,8 @@ async fn mirrored_wallpaper_bridge() -> (WallpaperBridge, FakeEngineFacade, Stri
                 selector: secondary_selector,
                 scaling_mode: "fill".to_string(),
                 scaling_factor: 1.25,
+                position_x: 0.5,
+                position_y: 0.5,
                 target_fps: 30,
                 volume: 0.2,
                 muted: true,

@@ -251,6 +251,8 @@ fn mirror_scene_follows_source_wallpaper_with_monitor_overrides() {
             selector: SerializedSelector::LiveDisplayId { display_id: 2 },
             scaling_mode: "fill".to_string(),
             scaling_factor: 1.25,
+            position_x: 0.5,
+            position_y: 0.5,
             target_fps: 30,
             volume: 0.2,
             muted: true,

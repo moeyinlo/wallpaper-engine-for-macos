@@ -53,6 +53,12 @@ pub struct SetScalingFactor {
     pub factor: f64,
 }
 
+pub struct SetPosition {
+    pub handle: SceneHandle,
+    pub x: f64,
+    pub y: f64,
+}
+
 pub struct SetFps {
     pub handle: SceneHandle,
     pub fps: u32,

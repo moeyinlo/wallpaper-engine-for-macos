@@ -217,6 +217,10 @@ pub struct MonitorSettingsCfg {
     pub scaling_mode: String,
     #[serde(default = "default_scaling_factor")]
     pub scaling_factor: f64,
+    #[serde(default = "super::wallpaper::default_position")]
+    pub position_x: f64,
+    #[serde(default = "super::wallpaper::default_position")]
+    pub position_y: f64,
     #[serde(default = "default_target_fps")]
     pub target_fps: u32,
     #[serde(default = "default_monitor_volume")]
@@ -231,6 +235,8 @@ impl Default for MonitorSettingsCfg {
             selector: SerializedSelector::default(),
             scaling_mode: default_scaling_mode(),
             scaling_factor: default_scaling_factor(),
+            position_x: 0.5,
+            position_y: 0.5,
             target_fps: default_target_fps(),
             volume: default_monitor_volume(),
             muted: false,
@@ -245,6 +251,7 @@ impl MonitorSettingsCfg {
             "none" => ScalingMode::None,
             "stretch" => ScalingMode::Stretch,
             "fill" => ScalingMode::Fill,
+            "free" => ScalingMode::Free,
             _ => ScalingMode::Fit,
         }
     }

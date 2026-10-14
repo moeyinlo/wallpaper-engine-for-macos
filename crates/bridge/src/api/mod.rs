@@ -45,10 +45,10 @@ use crate::{
             GetWallpaperOptionsSnapshot, InitialFrameReady, PollMousePosition, RefreshDisplays,
             RefreshLibrary, RestorePropertyDefault, SelectWallpaper, SetAudioResponseEnabled,
             SetDisplayConfigEnabled, SetDisplayEnabled, SetDisplayMode, SetFilter,
-            SetGlobalPlayback, SetLaunchAtLogin, SetMirrorMuted, SetMirrorScalingFactor,
-            SetMirrorScalingMode, SetMirrorTarget, SetMirrorTargetFps, SetMirrorVolume, SetMuted,
-            SetPauseOnBatteryPower, SetScalingFactor, SetScalingMode, SetTargetFps, SetVolume,
-            Shutdown,
+            SetGlobalPlayback, SetLaunchAtLogin, SetMirrorMuted, SetMirrorPosition,
+            SetMirrorScalingFactor, SetMirrorScalingMode, SetMirrorTarget, SetMirrorTargetFps,
+            SetMirrorVolume, SetMuted, SetPauseOnBatteryPower, SetPosition, SetScalingFactor,
+            SetScalingMode, SetTargetFps, SetVolume, Shutdown,
         },
         state::BridgeActorState,
     },
@@ -353,6 +353,15 @@ impl EngineFacade for ArcEngineFacade {
         factor: f64,
     ) -> Pin<Box<dyn Future<Output = Result<(), wallpaper_core::EngineError>> + Send>> {
         self.0.set_scaling_factor(handle, factor)
+    }
+
+    fn set_position(
+        &self,
+        handle: SceneHandle,
+        x: f64,
+        y: f64,
+    ) -> Pin<Box<dyn Future<Output = Result<(), wallpaper_core::EngineError>> + Send>> {
+        self.0.set_position(handle, x, y)
     }
 
     fn set_fps(
@@ -693,6 +702,23 @@ impl WallpaperBridge {
             .await
     }
 
+    pub async fn set_position(
+        &self,
+        wallpaper_id: String,
+        display_id: String,
+        x: f64,
+        y: f64,
+    ) -> Result<BridgeWallpaperMutationBundle, BridgeError> {
+        self.actor
+            .ask(SetPosition {
+                wallpaper_id,
+                display_id,
+                x,
+                y,
+            })
+            .await
+    }
+
     /// # Errors
     ///
     /// Returns an error when the wallpaper or display id is unknown, or
@@ -784,6 +810,15 @@ impl WallpaperBridge {
         self.actor
             .ask(SetMirrorScalingFactor { display_id, factor })
             .await
+    }
+
+    pub async fn set_mirror_position(
+        &self,
+        display_id: String,
+        x: f64,
+        y: f64,
+    ) -> Result<BridgeDisplayMutationBundle, BridgeError> {
+        self.actor.ask(SetMirrorPosition { display_id, x, y }).await
     }
 
     /// # Errors
@@ -1114,6 +1149,7 @@ impl From<BridgeScalingMode> for ScalingMode {
             BridgeScalingMode::Stretch => Self::Stretch,
             BridgeScalingMode::Match => Self::Fit,
             BridgeScalingMode::Fill => Self::Fill,
+            BridgeScalingMode::Free => Self::Free,
         }
     }
 }
@@ -1125,6 +1161,7 @@ impl From<ScalingMode> for BridgeScalingMode {
             ScalingMode::Stretch => Self::Stretch,
             ScalingMode::Fit => Self::Match,
             ScalingMode::Fill => Self::Fill,
+            ScalingMode::Free => Self::Free,
         }
     }
 }

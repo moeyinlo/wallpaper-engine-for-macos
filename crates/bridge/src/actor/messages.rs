@@ -102,6 +102,12 @@ pub struct SetMirrorScalingFactor {
     pub factor: f64,
 }
 
+pub struct SetMirrorPosition {
+    pub display_id: String,
+    pub x: f64,
+    pub y: f64,
+}
+
 pub struct SetMirrorTargetFps {
     pub display_id: String,
     pub fps: u32,
@@ -160,6 +166,13 @@ pub struct SetScalingFactor {
     pub wallpaper_id: String,
     pub display_id: String,
     pub factor: f64,
+}
+
+pub struct SetPosition {
+    pub wallpaper_id: String,
+    pub display_id: String,
+    pub x: f64,
+    pub y: f64,
 }
 
 pub struct SetTargetFps {
@@ -247,6 +260,7 @@ pub type SetDisplayModeReply = DisplayMutationReply;
 pub type SetMirrorTargetReply = DisplayMutationReply;
 pub type SetMirrorScalingModeReply = DisplayMutationReply;
 pub type SetMirrorScalingFactorReply = DisplayMutationReply;
+pub type SetMirrorPositionReply = DisplayMutationReply;
 pub type SetMirrorTargetFpsReply = DisplayMutationReply;
 pub type SetMirrorVolumeReply = DisplayMutationReply;
 pub type SetMirrorMutedReply = DisplayMutationReply;

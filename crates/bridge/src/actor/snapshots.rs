@@ -139,8 +139,11 @@ impl BridgeActorState {
                         ScalingMode::Stretch => BridgeScalingMode::Stretch,
                         ScalingMode::Fit => BridgeScalingMode::Match,
                         ScalingMode::Fill => BridgeScalingMode::Fill,
+                        ScalingMode::Free => BridgeScalingMode::Free,
                     },
                     scaling_factor: render.scaling_factor,
+                    position_x: render.position_x,
+                    position_y: render.position_y,
                     target_fps: render.fps.min(max_fps),
                     max_fps,
                     muted: config.audio.muted,
@@ -229,6 +232,7 @@ impl BridgeActorState {
                     ScalingMode::Stretch => "Stretch",
                     ScalingMode::Fit => "Match",
                     ScalingMode::Fill => "Fill",
+                    ScalingMode::Free => "Free",
                 };
 
                 Some(BridgeMonitorInfoRow {
@@ -345,6 +349,8 @@ impl BridgeActorState {
                         selected_mirror_target,
                         scaling_mode,
                         scaling_factor: settings.scaling_factor,
+                        position_x: settings.position_x,
+                        position_y: settings.position_y,
                         target_fps: settings.target_fps.min(max_fps),
                         max_fps,
                         muted: settings.muted,
