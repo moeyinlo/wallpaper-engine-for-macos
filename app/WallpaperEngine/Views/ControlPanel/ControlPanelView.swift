@@ -57,6 +57,7 @@ struct ControlPanelView: View {
             switch navigation.selection {
             case .wallpaper, .none:
                 WallpaperPageView()
+                    .navigationSplitViewColumnWidth(min: 440, ideal: 540, max: 900)
             case .display:
                 DisplayInformationView()
             case .settings:
@@ -65,6 +66,7 @@ struct ControlPanelView: View {
         } detail: {
             if navigation.selection == .wallpaper || navigation.selection == nil {
                 WallpaperInspectorView()
+                    .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 500)
             } else {
                 EmptyView()
             }

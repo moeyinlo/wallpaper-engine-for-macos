@@ -11,7 +11,7 @@ struct WallpaperPageView: View {
     @State private var searchText = ""
 
     private let columns = [
-        GridItem(.adaptive(minimum: 220, maximum: 280), spacing: 20, alignment: .top)
+        GridItem(.adaptive(minimum: 125, maximum: 170), spacing: 10, alignment: .top)
     ]
 
     private var wallpapers: [BridgeWallpaperEntry] {
@@ -31,7 +31,7 @@ struct WallpaperPageView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    LazyVGrid(columns: columns, alignment: .leading, spacing: 20) {
+                    LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
                         ForEach(wallpapers, id: \.id) { wallpaper in
                             WallpaperCardView(wallpaper: wallpaper)
                                 .contentShape(Rectangle())
@@ -43,7 +43,7 @@ struct WallpaperPageView: View {
                                 .disabled(bridgeActionInProgress)
                         }
                     }
-                    .padding(24)
+                    .padding(12)
                 }
             }
         }

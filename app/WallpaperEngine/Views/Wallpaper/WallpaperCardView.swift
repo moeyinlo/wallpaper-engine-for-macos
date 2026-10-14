@@ -44,7 +44,7 @@ struct WallpaperCardView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 6) {
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color(nsColor: .controlBackgroundColor))
@@ -57,23 +57,23 @@ struct WallpaperCardView: View {
                         .scaledToFill()
                 } else {
                     Image(systemName: fallbackSystemImage)
-                        .font(.system(size: 34, weight: .regular))
+                        .font(.system(size: 26, weight: .regular))
                         .foregroundStyle(.secondary)
                 }
 
                 Image(systemName: "play.circle.fill")
-                    .font(.system(size: 28))
+                    .font(.system(size: 18))
                     .foregroundStyle(.white)
                     .shadow(radius: 3)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                    .padding(12)
+                    .padding(6)
             }
             .aspectRatio(16.0 / 10.0, contentMode: .fit)
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .opacity(wallpaper.supported ? 1.0 : 0.55)
 
             Text(wallpaper.title)
-                .font(.headline)
+                .font(.subheadline.weight(.semibold))
                 .lineLimit(2)
                 .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -82,7 +82,7 @@ struct WallpaperCardView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding(12)
+        .padding(8)
         .background {
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(nsColor: .windowBackgroundColor))
